@@ -1,1 +1,70 @@
-{"files":[{"id":"5e9503a1-8721-47ea-bc2c-b0ce2a7a34c4","name":"appsscript","type":"json","source":"{\n  \"timeZone\": \"Asia/Kolkata\",\n  \"dependencies\": {},\n  \"exceptionLogging\": \"STACKDRIVER\",\n  \"runtimeVersion\": \"V8\",\n  \"webapp\": {\n    \"executeAs\": \"USER_DEPLOYING\",\n    \"access\": \"MYSELF\"\n  }\n}"},{"id":"262a02e0-3f25-4337-85e3-b1707d13c240","name":"Code","type":"server_js","source":"const SHEET_ID \u003d \u00271FBoGU29k1Bw-Pnp1aqsVtjZj2hIL8tccTl2-kj-zxcE\u0027;\nconst SUBJECT_KEYWORDS \u003d [\u0027win\u0027, \u0027free\u0027, \u0027bonus\u0027, \u0027claim\u0027, \u0027swiggy\u0027,\u00271mg\u0027,\u0027updates@myntra.com\u0027,\u0027order-update@amazon.in\u0027,\u0027nse_alerts@nse.co.in\u0027,\u0027no-reply-transaction-with-holding-statement@reportsmailer.zerodha.net\u0027,\u0027ICICIdirect.com\u0027];\nconst NOTIFY_EMAIL \u003d \u0027viplav.ai9@gmail.com\u0027; // Replace with your Gmail\n\nfunction deleteSpamAndCustomFilteredEmails() {\n  const sheet \u003d SpreadsheetApp.openById(SHEET_ID);\n  const logSheet \u003d sheet.getSheetByName(\u0027Log\u0027);\n  const blacklistSheet \u003d sheet.getSheetByName(\u0027Blacklist\u0027);\n  const now \u003d new Date();\n  const logData \u003d [];\n\n  // ❗ Ensure sheets exist\n  if (!logSheet || !blacklistSheet) {\n    throw new Error(\"❌ \u0027Log\u0027 or \u0027Blacklist\u0027 sheet not found.\");\n  }\n\n  // 1. Handle Spam Threads\n  const spamThreads \u003d GmailApp.getSpamThreads();\n  spamThreads.forEach(thread \u003d\u003e {\n    const message \u003d thread.getMessages()[0];\n    const subject \u003d message.getSubject();\n    const sender \u003d message.getFrom();\n    logData.push([now, sender, subject, \u0027Spam\u0027]);\n  });\n  GmailApp.moveThreadsToTrash(spamThreads);\n\n  // 2. Handle Custom Blacklisted Emails with Expiry\n  const blacklistRows \u003d blacklistSheet.getRange(2, 1, blacklistSheet.getLastRow() - 1, 2).getValues();\n\n  blacklistRows.forEach(([email, expiry]) \u003d\u003e {\n    if (!email) return;\n    if (expiry \u0026\u0026 new Date(expiry) \u003c now) return; // Skip expired\n\n    const threads \u003d GmailApp.search(`from:${email}`);\n    threads.forEach(thread \u003d\u003e {\n      const message \u003d thread.getMessages()[0];\n      const subject \u003d message.getSubject();\n      const sender \u003d message.getFrom();\n      logData.push([now, sender, subject, `Blacklisted: ${email}`]);\n    });\n    GmailApp.moveThreadsToTrash(threads);\n  });\n\n  // 3. Handle Subject Keyword Filter\n  const keywordQuery \u003d SUBJECT_KEYWORDS.map(k \u003d\u003e `subject:${k}`).join(\u0027 OR \u0027);\n  const keywordThreads \u003d GmailApp.search(keywordQuery);\n  keywordThreads.forEach(thread \u003d\u003e {\n    const message \u003d thread.getMessages()[0];\n    const subject \u003d message.getSubject();\n    const sender \u003d message.getFrom();\n    logData.push([now, sender, subject, \u0027Subject Keyword Match\u0027]);\n  });\n  GmailApp.moveThreadsToTrash(keywordThreads);\n\n  // 4. Log Deleted Emails\n  if (logData.length \u003e 0) {\n    logSheet.getRange(logSheet.getLastRow() + 1, 1, logData.length, 4).setValues(logData);\n  }\n\n  // 5. Gmail Notification Summary\n  const subject \u003d `🧹 Gmail Cleanup Summary - ${logData.length} Deleted`;\n  const bodyLines \u003d logData.map(\n    ([date, sender, subject, reason]) \u003d\u003e `- ${new Date(date).toLocaleString()}: ${sender} | \"${subject}\" | ${reason}`\n  );\n  const body \u003d logData.length \u003e 0\n    ? `Hello Viplav,\\n\\nThe following emails were deleted by your automation script:\\n\\n${bodyLines.join(\u0027\\n\u0027)}`\n    : `Hello Viplav,\\n\\nNo emails were deleted in this run.`;\n\n  MailApp.sendEmail(NOTIFY_EMAIL, subject, body);\n}"}]}
+const SHEET_ID = '1FBoGU29k1Bw-Pnp1aqsvtjZj2hIL8tccTl2-kj-zxCE'; // Replace with your Gsheet code
+const SUBJECT_KEYWORDS = ['win', 'free', 'bonus', 'claim', 'swiggy','1mg','updates@myntra.com','order-update@amazon.in','nse_alerts@nse.co.in','no-reply-transaction-with-holding-statement@reportsmailer.zerodha.net','ICICIdirect.com','otp']; // Add your keywords
+const NOTIFY_EMAIL = 'xyz123@gmail.com'; // Replace with your Gmail
+
+function deleteSpamAndCustomFilteredEmails() {
+  const sheet = SpreadsheetApp.openById(SHEET_ID);
+  const logSheet = sheet.getSheetByName('Log');
+  const blacklistSheet = sheet.getSheetByName('Blacklist');
+  const now = new Date();
+  const logData = [];
+
+  // ❗ Ensure sheets exist
+  if (!logSheet || !blacklistSheet) {
+    throw new Error("❌ 'Log' or 'Blacklist' sheet not found.");
+  }
+
+  // 1. Handle Spam Threads
+  const spamThreads = GmailApp.getSpamThreads();
+  spamThreads.forEach(thread => {
+    const message = thread.getMessages()[0];
+    const subject = message.getSubject();
+    const sender = message.getFrom();
+    logData.push([now, sender, subject, 'Spam']);
+  });
+  GmailApp.moveThreadsToTrash(spamThreads);
+
+  // 2. Handle Custom Blacklisted Emails with Expiry
+  const blacklistRows = blacklistSheet.getRange(2, 1, blacklistSheet.getLastRow() - 1, 2).getValues();
+
+  blacklistRows.forEach(([email, expiry]) => {
+    if (!email) return;
+    if (expiry && new Date(expiry) < now) return; // Skip expired
+
+    const threads = GmailApp.search(`from:${email}`);
+    threads.forEach(thread => {
+      const message = thread.getMessages()[0];
+      const subject = message.getSubject();
+      const sender = message.getFrom();
+      logData.push([now, sender, subject, `Blacklisted: ${email}`]);
+    });
+    GmailApp.moveThreadsToTrash(threads);
+  });
+
+  // 3. Handle Subject Keyword Filter
+  const keywordQuery = SUBJECT_KEYWORDS.map(k => `subject:${k}`).join(' OR ');
+  const keywordThreads = GmailApp.search(keywordQuery);
+  keywordThreads.forEach(thread => {
+    const message = thread.getMessages()[0];
+    const subject = message.getSubject();
+    const sender = message.getFrom();
+    logData.push([now, sender, subject, 'Subject Keyword Match']);
+  });
+  GmailApp.moveThreadsToTrash(keywordThreads);
+
+  // 4. Log Deleted Emails
+  if (logData.length > 0) {
+    logSheet.getRange(logSheet.getLastRow() + 1, 1, logData.length, 4).setValues(logData);
+  }
+
+  // 5. Gmail Notification Summary
+  const subject = `🧹 Gmail Cleanup Summary - ${logData.length} Deleted`;
+  const bodyLines = logData.map(
+    ([date, sender, subject, reason]) => `- ${new Date(date).toLocaleString()}: ${sender} | "${subject}" | ${reason}`
+  );
+  const body = logData.length > 0
+    ? `Hello Viplav,\n\nThe following emails were deleted by your automation script:\n\n${bodyLines.join('\n')}`
+    : `Hello Viplav,\n\nNo emails were deleted in this run.`;
+
+  MailApp.sendEmail(NOTIFY_EMAIL, subject, body);
+}
